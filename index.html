@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkCollar Ledger — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="login-shell">
+  <aside class="login-aside">
+    <div class="brand-mark"><span class="stamp">WC</span> WorkCollar Ledger</div>
+
+    <div class="aside-quote">
+      Every incentive, every performance point, every leave —<br>
+      <em>logged like a ledger, read like a dashboard.</em>
+    </div>
+
+    <div class="aside-foot">
+      <div><b id="statEmp">—</b>Executives tracked</div>
+      <div><b id="statMonths">6</b>Months live</div>
+      <div><b id="statProc">—</b>Client processes</div>
+    </div>
+  </aside>
+
+  <main class="login-main">
+    <div class="login-card">
+      <h1>Sign in</h1>
+      <p class="sub">Choose your access level to open the ledger.</p>
+
+      <div class="role-toggle">
+        <button type="button" data-role="admin" class="active">Admin</button>
+        <button type="button" data-role="viewer">Viewer</button>
+      </div>
+
+      <div class="error-msg" id="errBox">Incorrect username or password. Try again.</div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" autocomplete="username" placeholder="admin" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button class="btn btn-primary" type="submit" id="loginBtn">Enter ledger →</button>
+      </form>
+
+      <div class="hint-row">
+        <span id="roleHint">Admin can upload sheets &amp; publish to GitHub</span>
+      </div>
+
+      <div class="demo-creds">
+        <b>Demo credentials</b> (change these in <code>assets/app.js</code> before real deployment):<br>
+        Admin — <code>admin / Admin@123</code><br>
+        Viewer — <code>viewer / Viewer@123</code><br><br>
+        This is client-side-only auth for a small internal team, not a secure login system —
+        anyone who can view the page source can read these values. For sensitive data, keep the
+        repository <b>private</b> and only share access with trusted teammates, or add real auth later.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  (function(){
+    var roleBtns = document.querySelectorAll('.role-toggle button');
+    var hint = document.getElementById('roleHint');
+    var usernameField = document.getElementById('username');
+    roleBtns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        roleBtns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        var role = btn.getAttribute('data-role');
+        hint.textContent = role === 'admin'
+          ? 'Admin can upload sheets & publish to GitHub'
+          : 'Viewer gets read-only dashboards';
+        usernameField.placeholder = role === 'admin' ? 'admin' : 'viewer';
+      });
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      var role = document.querySelector('.role-toggle button.active').getAttribute('data-role');
+      var u = document.getElementById('username').value.trim();
+      var p = document.getElementById('password').value;
+      var result = WCLedger.auth.attempt(role, u, p);
+      var errBox = document.getElementById('errBox');
+      if(result.ok){
+        errBox.style.display = 'none';
+        window.location.href = 'dashboard.html';
+      } else {
+        errBox.style.display = 'block';
+      }
+    });
+
+    // Populate aside stats from data.json (nice-to-have, silently ignored if not reachable, e.g. opened via file://)
+    fetch('data/data.json').then(function(r){ return r.json(); }).then(function(d){
+      document.getElementById('statEmp').textContent = d.meta.employeeCount;
+      var procs = new Set(d.employees.map(function(e){ return e.currentProcess; }));
+      document.getElementById('statProc').textContent = procs.size;
+    }).catch(function(){ /* offline / file:// preview — ignore */ });
+
+    // If already logged in, skip straight to dashboard
+    if(WCLedger.auth.current()){ window.location.href = 'dashboard.html'; }
+  })();
+</script>
+</body>
+</html>

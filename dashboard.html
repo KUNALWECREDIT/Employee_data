@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkCollar Ledger — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="brand-mark"><span class="stamp">WC</span> WorkCollar</div>
+    <div class="role-pill" id="rolePill">Signed in as <b id="roleLabel">—</b></div>
+
+    <div class="nav-group">
+      <div class="nav-eyebrow">Dashboards</div>
+      <a class="navlink active" data-tab="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg>
+        Overview <span class="tick"></span>
+      </a>
+      <a class="navlink" data-tab="rawdata">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+        Raw Data <span class="tick"></span>
+      </a>
+      <a class="navlink" data-tab="monthly">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Monthly Report <span class="tick"></span>
+      </a>
+      <a class="navlink" data-tab="insights">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9z"/></svg>
+        Insights <span class="tick"></span>
+      </a>
+    </div>
+
+    <div class="nav-group" id="adminNavGroup" style="display:none;">
+      <div class="nav-eyebrow">Admin</div>
+      <a class="navlink" data-tab="publish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
+        Publish Sheet <span class="tick"></span>
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <button class="btn btn-danger btn-sm" style="width:100%" id="logoutBtn">Log out</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="topbarTitle">Overview</h1>
+        <div class="meta" id="topbarMeta">Loading ledger…</div>
+      </div>
+      <div class="topbar-actions">
+        <span class="chip" id="lastUpdatedChip"><span class="dot" style="background:var(--teal)"></span> —</span>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+
+      <!-- ============ OVERVIEW ============ -->
+      <section class="tab-panel panel-fade" data-panel="overview">
+        <div class="kpi-row" id="ovKpis"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Incentive paid by month</h3><p>Total incentive disbursed across all executives, Jan – Jun.</p></div>
+              <span class="chip"><span class="dot" style="background:var(--gold)"></span> Incentive (₹)</span>
+            </div>
+            <canvas id="chartOvIncentive" height="230"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Client mix</h3><p>Share of executives by current process.</p></div>
+            </div>
+            <canvas id="chartOvProcess" height="230"></canvas>
+            <div class="legend" id="ovProcessLegend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Top 8 performers — this dataset</h3><p>Ranked by total incentive earned across all months on record.</p></div>
+          </div>
+          <canvas id="chartOvTop" height="220"></canvas>
+        </div>
+      </section>
+
+      <!-- ============ RAW DATA ============ -->
+      <section class="tab-panel" data-panel="rawdata" style="display:none;">
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Raw employee ledger</h3><p>Every executive, straight from the master sheet. Gold = incentive, teal = performance, coral = leave / PIP — same palette as every chart in this app.</p></div>
+            <span class="count-badge" id="rawCount">— rows</span>
+          </div>
+          <div class="table-toolbar">
+            <div class="search-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="rawSearch" placeholder="Search name, code, process, designation…">
+            </div>
+            <select class="select-mini" id="rawProcessFilter"><option value="">All processes</option></select>
+            <select class="select-mini" id="rawSort">
+              <option value="totalIncentive_desc">Sort: Incentive (high → low)</option>
+              <option value="totalIncentive_asc">Sort: Incentive (low → high)</option>
+              <option value="avgPerformance_desc">Sort: Performance (high → low)</option>
+              <option value="totalLeave_desc">Sort: Leave (high → low)</option>
+              <option value="name_asc">Sort: Name (A → Z)</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="ledger">
+              <thead>
+                <tr>
+                  <th>Code</th><th>Employee</th><th>Designation</th><th>Process</th>
+                  <th>DOJ</th><th class="num">Days</th>
+                  <th class="num">Total Incentive</th><th class="num">Avg Perf.</th><th class="num">Total Leave</th>
+                  <th class="num">PIP Months</th><th>6-mo trend</th>
+                </tr>
+              </thead>
+              <tbody id="rawTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MONTHLY REPORT ============ -->
+      <section class="tab-panel" data-panel="monthly" style="display:none;">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div><h3>Total incentive vs total leave, by month</h3><p>Company-wide totals for each of the six months on record.</p></div></div>
+            <canvas id="chartMoIncLeave" height="230"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>Average performance trend</h3><p>Mean performance score across all active executives.</p></div></div>
+            <canvas id="chartMoPerf" height="230"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Monthly summary table</h3><p>Active headcount = executives with a non-zero incentive that month.</p></div></div>
+          <div class="table-wrap">
+            <table class="ledger" style="min-width:0;">
+              <thead><tr>
+                <th>Month</th><th class="num">Total Incentive</th><th class="num">Avg Performance</th>
+                <th class="num">Total Leave</th><th class="num">Active Executives</th><th class="num">On PIP</th>
+              </tr></thead>
+              <tbody id="monthlyTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INSIGHTS ============ -->
+      <section class="tab-panel" data-panel="insights" style="display:none;">
+        <div class="card">
+          <div class="card-head">
+            <div><h3>1 · Top 15 by total incentive</h3><p>Highest earners across the full six-month window.</p></div>
+          </div>
+          <canvas id="chartInTop15" height="260"></canvas>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div><h3>2 · Process performance comparison</h3><p>Average performance vs. total incentive, grouped by client process.</p></div></div>
+            <canvas id="chartInProcess" height="240"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h3>3 · Performance vs. earnings</h3><p>Every executive plotted — bubble size = months on roll.</p></div></div>
+            <canvas id="chartInScatter" height="240"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3>4 · PIP &amp; leave risk board</h3><p>Executives flagged on a Performance Improvement Plan for 2+ months, or with high total leave.</p></div>
+          </div>
+          <div class="grid-2-even">
+            <canvas id="chartInPipByMonth" height="200"></canvas>
+            <div class="table-wrap" style="max-height:280px;">
+              <table class="ledger" style="min-width:0;">
+                <thead><tr><th>Employee</th><th>Process</th><th class="num">PIP Months</th><th class="num">Total Leave</th></tr></thead>
+                <tbody id="riskTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PUBLISH (admin only) ============ -->
+      <section class="tab-panel" data-panel="publish" style="display:none;">
+        <div class="warn-banner">
+          <span>⚠</span>
+          <div>
+            Publishing writes directly to your GitHub repo via the Contents API using the token you paste below.
+            The token is kept in memory for this session only — it is <b>never saved to disk, localStorage, or committed</b>.
+            Use a fine-grained PAT scoped to just this one repo with <b>Contents: Read and write</b> permission, and prefer a short expiry.
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div><h3><span class="step-badge">1</span>Upload updated sheet</h3><p>Same layout as the master file — two header rows, then one row per executive.</p></div></div>
+            <label class="upload-zone" id="dropZone">
+              <input type="file" id="fileInput" accept=".xlsx,.xls">
+              <div style="font-size:28px;">📄</div>
+              <div style="margin-top:8px; font-weight:600;">Drop the .xlsx here, or click to browse</div>
+              <div style="margin-top:4px; font-size:12px; color:var(--slate);">Parsed entirely in your browser — nothing is uploaded until you publish.</div>
+            </label>
+            <div class="status-box" id="parseStatus"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><div><h3><span class="step-badge">2</span>Repository target</h3><p>Where on GitHub the parsed data.json should be committed.</p></div></div>
+            <div class="field-inline">
+              <div class="field"><label>Repo owner / org</label><input id="ghOwner" placeholder="your-github-username"></div>
+              <div class="field"><label>Repository name</label><input id="ghRepo" placeholder="workcollar-ledger"></div>
+              <div class="field"><label>Branch</label><input id="ghBranch" value="main"></div>
+              <div class="field"><label>File path</label><input id="ghPath" value="data/data.json"></div>
+            </div>
+            <div class="field">
+              <label>GitHub Personal Access Token</label>
+              <input id="ghToken" type="password" placeholder="github_pat_…">
+            </div>
+            <button class="btn btn-primary" id="publishBtn" disabled style="width:100%;">
+              <span class="step-badge" style="background:transparent;border-color:rgba(0,0,0,.3);">3</span> Publish to GitHub
+            </button>
+            <div class="status-box" id="publishStatus"></div>
+          </div>
+        </div>
+
+        <div class="card" id="previewCard" style="display:none;">
+          <div class="card-head"><div><h3>Preview — first 6 parsed rows</h3><p id="previewCount"></p></div></div>
+          <div class="table-wrap">
+            <table class="ledger" style="min-width:0;">
+              <thead><tr><th>Code</th><th>Name</th><th>Process</th><th class="num">Total Incentive</th><th class="num">Avg Perf.</th></tr></thead>
+              <tbody id="previewTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    <footer class="foot-note">WorkCollar Ledger · static dashboard for GitHub Pages · data refreshes when the admin publishes a new sheet</footer>
+  </div>
+</div>
+
+<!-- Employee detail modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalName">—</h2>
+        <div class="sub" id="modalSub">—</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="modalKpis"></div>
+      <table class="mini-table">
+        <thead><tr><th>Month</th><th>Incentive</th><th>Performance</th><th>Leave</th><th>PIP</th></tr></thead>
+        <tbody id="modalMonthly"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script src="assets/dashboard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="assets/publish.js"></script>
+</body>
+</html>
