@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WECREDIT — Dashboard</title>
+<title>WorkCollar Ledger — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -13,7 +13,7 @@
 
 <div class="app-shell">
   <nav class="sidebar">
-    <div class="brand-mark"><span class="stamp">WC</span> WECREDIT</div>
+    <div class="brand-mark"><span class="stamp">WC</span> WorkCollar</div>
     <div class="role-pill" id="rolePill">Signed in as <b id="roleLabel">—</b></div>
 
     <div class="nav-group">
@@ -71,13 +71,13 @@
               <div><h3>Incentive paid by month</h3><p>Total incentive disbursed across all executives, Jan – Jun.</p></div>
               <span class="chip"><span class="dot" style="background:var(--gold)"></span> Incentive (₹)</span>
             </div>
-            <canvas id="chartOvIncentive" height="230"></canvas>
+            <div class="chart-box" style="height:260px;"><canvas id="chartOvIncentive"></canvas></div>
           </div>
           <div class="card">
             <div class="card-head">
               <div><h3>Client mix</h3><p>Share of executives by current process.</p></div>
             </div>
-            <canvas id="chartOvProcess" height="230"></canvas>
+            <div class="chart-box" style="height:260px;"><canvas id="chartOvProcess"></canvas></div>
             <div class="legend" id="ovProcessLegend"></div>
           </div>
         </div>
@@ -85,7 +85,7 @@
           <div class="card-head">
             <div><h3>Top 8 performers — this dataset</h3><p>Ranked by total incentive earned across all months on record.</p></div>
           </div>
-          <canvas id="chartOvTop" height="220"></canvas>
+          <div class="chart-box" style="height:300px;"><canvas id="chartOvTop"></canvas></div>
         </div>
       </section>
 
@@ -107,15 +107,44 @@
               <option value="totalIncentive_asc">Sort: Incentive (low → high)</option>
               <option value="avgPerformance_desc">Sort: Performance (high → low)</option>
               <option value="totalLeave_desc">Sort: Leave (high → low)</option>
+              <option value="tenure_desc">Sort: Tenure (high → low)</option>
               <option value="name_asc">Sort: Name (A → Z)</option>
             </select>
           </div>
+
+          <div class="filter-builder">
+            <select class="select-mini" id="filterField">
+              <option value="totalIncentive">Total Incentive (₹)</option>
+              <option value="avgPerformance">Avg Performance (%)</option>
+              <option value="totalLeave">Total Leave (days)</option>
+              <option value="daysOnRoll">Days on Roll</option>
+              <option value="pipMonthsCount">PIP Months</option>
+              <option value="tenurePct">Tenure (%)</option>
+              <option value="dojMonth">DOJ — Joined Month</option>
+            </select>
+            <select class="select-mini" id="filterOp">
+              <option value=">">is greater than</option>
+              <option value=">=">is ≥</option>
+              <option value="<">is less than</option>
+              <option value="<=">is ≤</option>
+              <option value="=">equals</option>
+            </select>
+            <input class="select-mini" id="filterValue" type="number" placeholder="e.g. 20000" style="width:120px;">
+            <select class="select-mini" id="filterValueMonth" style="display:none;"></select>
+            <select class="select-mini" id="filterMode">
+              <option value="filter">Mode: Filter (hide non-matches)</option>
+              <option value="highlight">Mode: Highlight (keep all rows)</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" id="filterAddBtn" type="button">+ Add condition</button>
+          </div>
+          <div class="filter-chips" id="filterChips"></div>
+
           <div class="table-wrap">
             <table class="ledger">
               <thead>
                 <tr>
                   <th>Code</th><th>Employee</th><th>Designation</th><th>Process</th>
-                  <th>DOJ</th><th class="num">Days</th>
+                  <th>DOJ</th><th class="num">Days</th><th class="num">Tenure %</th>
                   <th class="num">Total Incentive</th><th class="num">Avg Perf.</th><th class="num">Total Leave</th>
                   <th class="num">PIP Months</th><th>6-mo trend</th>
                 </tr>
@@ -131,11 +160,11 @@
         <div class="grid-2">
           <div class="card">
             <div class="card-head"><div><h3>Total incentive vs total leave, by month</h3><p>Company-wide totals for each of the six months on record.</p></div></div>
-            <canvas id="chartMoIncLeave" height="230"></canvas>
+            <div class="chart-box" style="height:280px;"><canvas id="chartMoIncLeave"></canvas></div>
           </div>
           <div class="card">
             <div class="card-head"><div><h3>Average performance trend</h3><p>Mean performance score across all active executives.</p></div></div>
-            <canvas id="chartMoPerf" height="230"></canvas>
+            <div class="chart-box" style="height:280px;"><canvas id="chartMoPerf"></canvas></div>
           </div>
         </div>
         <div class="card">
@@ -158,17 +187,17 @@
           <div class="card-head">
             <div><h3>1 · Top 15 by total incentive</h3><p>Highest earners across the full six-month window.</p></div>
           </div>
-          <canvas id="chartInTop15" height="260"></canvas>
+          <div class="chart-box" style="height:420px;"><canvas id="chartInTop15"></canvas></div>
         </div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-head"><div><h3>2 · Process performance comparison</h3><p>Average performance vs. total incentive, grouped by client process.</p></div></div>
-            <canvas id="chartInProcess" height="240"></canvas>
+            <div class="chart-box" style="height:300px;"><canvas id="chartInProcess"></canvas></div>
           </div>
           <div class="card">
             <div class="card-head"><div><h3>3 · Performance vs. earnings</h3><p>Every executive plotted — bubble size = months on roll.</p></div></div>
-            <canvas id="chartInScatter" height="240"></canvas>
+            <div class="chart-box" style="height:300px;"><canvas id="chartInScatter"></canvas></div>
           </div>
         </div>
 
@@ -177,7 +206,7 @@
             <div><h3>4 · PIP &amp; leave risk board</h3><p>Executives flagged on a Performance Improvement Plan for 2+ months, or with high total leave.</p></div>
           </div>
           <div class="grid-2-even">
-            <canvas id="chartInPipByMonth" height="200"></canvas>
+            <div class="chart-box" style="height:240px;"><canvas id="chartInPipByMonth"></canvas></div>
             <div class="table-wrap" style="max-height:280px;">
               <table class="ledger" style="min-width:0;">
                 <thead><tr><th>Employee</th><th>Process</th><th class="num">PIP Months</th><th class="num">Total Leave</th></tr></thead>
@@ -258,6 +287,7 @@
     </div>
     <div class="modal-body">
       <div class="detail-grid" id="modalKpis"></div>
+      <div class="feedback-row" id="modalFeedback"></div>
       <table class="mini-table">
         <thead><tr><th>Month</th><th>Incentive</th><th>Performance</th><th>Leave</th><th>PIP</th></tr></thead>
         <tbody id="modalMonthly"></tbody>

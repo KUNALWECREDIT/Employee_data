@@ -17,6 +17,17 @@ GitHub Personal Access Token); a **Viewer** gets read-only dashboards.
     └── data.json           → Parsed employee data the whole site reads from
 ```
 
+## Recent updates
+
+- **Theme:** switched to a light sky-blue & white palette with raised "3D" ticket/card surfaces (soft shadows, embossed edges). Data-accent colors (gold=incentive, teal=performance, coral=leave/PIP) stay the same everywhere for consistency.
+- **Chart sizing fixed:** every chart canvas now sits in a fixed-height `.chart-box` wrapper — this was the cause of charts growing to an enormous height on Overview/Monthly/Insights.
+- **Raw Data — Tenure % column:** shows each executive's tenure as a percentage of the longest-tenured person in the dataset (based on total months on roll).
+- **Raw Data — condition filters:** build conditions like "Total Incentive > 20000" or "DOJ Joined Month = March" on any numeric column or join month. Each condition has two modes:
+  - **Filter** — hides rows that don't match
+  - **Highlight** — keeps every row visible and highlights the matches in amber
+  Multiple conditions can be active at once (shown as removable chips); filter-mode conditions combine with AND, highlight-mode conditions combine with OR.
+- **Employee modal — feedback breakdown:** now shows Quality Feedback (yellow), Positive (green), and Negative (red) as separate counts, plus tenure.
+
 ## 1. What's in each dashboard
 
 | Tab | What it shows |

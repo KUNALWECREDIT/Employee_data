@@ -12,6 +12,7 @@
   var charts = {}; // keep references so we can destroy/rebuild on re-render
   var employees = [];
   var meta = {};
+  var maxTenureMonths = 0;
 
   var TITLES = {
     overview: ["Overview", "Company-wide snapshot across every executive and every month."],
@@ -56,6 +57,7 @@
   WC.dataStore.load().then(function (json) {
     meta = json.meta;
     employees = json.employees;
+    maxTenureMonths = employees.reduce(function (m, e) { return Math.max(m, e.monthsOnRoll || 0); }, 0);
     document.getElementById("topbarMeta").textContent = TITLES[initialTab][1];
     document.getElementById("lastUpdatedChip").innerHTML =
       '<span class="dot" style="background:var(--teal)"></span> ' + meta.employeeCount + ' executives · updated ' + meta.generatedAt;
@@ -104,8 +106,8 @@
 
   function chartTheme() {
     return {
-      color: "#8890A4",
-      grid: "rgba(255,255,255,0.06)"
+      color: "#5C7994",
+      grid: "rgba(20,48,74,0.07)"
     };
   }
 
@@ -116,7 +118,7 @@
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false, labels: { color: t.color, font: { family: "Inter", size: 11 } } },
-        tooltip: { backgroundColor: "#1F2736", borderColor: "#2B3448", borderWidth: 1, titleColor: "#ECEEF3", bodyColor: "#ECEEF3", padding: 10, titleFont: { family: "Space Grotesk" }, bodyFont: { family: "IBM Plex Mono", size: 11.5 } }
+        tooltip: { backgroundColor: "#FFFFFF", borderColor: "#CFE6F7", borderWidth: 1, titleColor: "#14304A", bodyColor: "#14304A", padding: 10, titleFont: { family: "Space Grotesk" }, bodyFont: { family: "IBM Plex Mono", size: 11.5 }, boxPadding: 4 }
       },
       scales: {
         x: { ticks: { color: t.color, font: { family: "IBM Plex Mono", size: 10.5 } }, grid: { color: "transparent" } },
@@ -168,7 +170,7 @@
       type: "doughnut",
       data: {
         labels: procs.map(function (p) { return p.process; }),
-        datasets: [{ data: procs.map(function (p) { return p.count; }), backgroundColor: procs.map(function (p) { return helpers.processColor(p.process); }), borderColor: "#171D2B", borderWidth: 2 }]
+        datasets: [{ data: procs.map(function (p) { return p.count; }), backgroundColor: procs.map(function (p) { return helpers.processColor(p.process); }), borderColor: "#FFFFFF", borderWidth: 2 }]
       },
       options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { display: false }, tooltip: baseOptions().plugins.tooltip } }
     });
@@ -188,7 +190,35 @@
   }
 
   /* ==================== RAW DATA ==================== */
-  var rawState = { search: "", process: "", sort: "totalIncentive_desc" };
+  var rawState = { search: "", process: "", sort: "totalIncentive_desc", filters: [] };
+  var filterIdSeq = 1;
+
+  var MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  var FIELD_DEFS = {
+    totalIncentive: { label: "Total Incentive", get: function (e) { return e.totalIncentive; }, disp: function (v) { return fmt.inr(v); } },
+    avgPerformance: { label: "Avg Performance", get: function (e) { return e.avgPerformance * 100; }, disp: function (v) { return v + "%"; } },
+    totalLeave: { label: "Total Leave", get: function (e) { return e.totalLeave; }, disp: function (v) { return v + " days"; } },
+    daysOnRoll: { label: "Days on Roll", get: function (e) { return e.daysOnRoll; }, disp: function (v) { return v; } },
+    pipMonthsCount: { label: "PIP Months", get: function (e) { return e.pipMonthsCount; }, disp: function (v) { return v; } },
+    tenurePct: { label: "Tenure", get: function (e) { return maxTenureMonths ? (e.monthsOnRoll / maxTenureMonths) * 100 : 0; }, disp: function (v) { return v + "%"; } },
+    dojMonth: { label: "Joined Month", get: function (e) { return e.doj ? (new Date(e.doj + "T00:00:00").getMonth() + 1) : null; }, disp: function (v) { return MONTH_NAMES[v - 1]; }, isMonth: true }
+  };
+  var OP_LABEL = { ">": ">", ">=": "≥", "<": "<", "<=": "≤", "=": "=" };
+
+  function cmp(a, op, b) {
+    if (a === null || a === undefined || isNaN(a)) return false;
+    switch (op) {
+      case ">": return a > b;
+      case ">=": return a >= b;
+      case "<": return a < b;
+      case "<=": return a <= b;
+      case "=": return a === b;
+      default: return true;
+    }
+  }
+
+  function tenurePctOf(e) { return maxTenureMonths ? (e.monthsOnRoll / maxTenureMonths) * 100 : 0; }
 
   function renderRawData() {
     var procSel = document.getElementById("rawProcessFilter");
@@ -198,19 +228,65 @@
     document.getElementById("rawSearch").addEventListener("input", helpers.debounce(function (e) { rawState.search = e.target.value.toLowerCase(); drawRawTable(); }, 150));
     procSel.addEventListener("change", function (e) { rawState.process = e.target.value; drawRawTable(); });
     document.getElementById("rawSort").addEventListener("change", function (e) { rawState.sort = e.target.value; drawRawTable(); });
-    document.querySelectorAll("table.ledger thead th").forEach(function (th, idx) {
-      // simple click-to-sort on the numeric ledger columns in Raw Data table only
+
+    var fieldSel = document.getElementById("filterField");
+    var valInput = document.getElementById("filterValue");
+    var valMonthSel = document.getElementById("filterValueMonth");
+    valMonthSel.innerHTML = MONTH_NAMES.map(function (m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join("");
+
+    function syncValueInput() {
+      var isMonth = FIELD_DEFS[fieldSel.value].isMonth;
+      valInput.style.display = isMonth ? "none" : "";
+      valMonthSel.style.display = isMonth ? "" : "none";
+    }
+    fieldSel.addEventListener("change", syncValueInput);
+    syncValueInput();
+
+    document.getElementById("filterAddBtn").addEventListener("click", function () {
+      var field = fieldSel.value;
+      var def = FIELD_DEFS[field];
+      var op = document.getElementById("filterOp").value;
+      var mode = document.getElementById("filterMode").value;
+      var value = def.isMonth ? parseInt(valMonthSel.value, 10) : parseFloat(valInput.value);
+      if (isNaN(value)) { valInput.focus(); return; }
+      rawState.filters.push({ id: filterIdSeq++, field: field, op: op, value: value, mode: mode, label: def.label + " " + OP_LABEL[op] + " " + def.disp(value) });
+      valInput.value = "";
+      drawRawTable();
     });
 
     drawRawTable();
   }
 
+  function renderFilterChips() {
+    var box = document.getElementById("filterChips");
+    if (!rawState.filters.length) { box.innerHTML = ""; return; }
+    box.innerHTML = rawState.filters.map(function (f) {
+      return '<span class="filter-chip mode-' + f.mode + '">' + f.label + ' · ' + (f.mode === "filter" ? "Filter" : "Highlight") +
+        ' <button data-fid="' + f.id + '" title="Remove">✕</button></span>';
+    }).join("") + '<button class="btn btn-ghost btn-sm" id="clearFiltersBtn" type="button">Clear all</button>';
+    box.querySelectorAll("button[data-fid]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = parseInt(btn.getAttribute("data-fid"), 10);
+        rawState.filters = rawState.filters.filter(function (f) { return f.id !== id; });
+        drawRawTable();
+      });
+    });
+    var clearBtn = document.getElementById("clearFiltersBtn");
+    if (clearBtn) clearBtn.addEventListener("click", function () { rawState.filters = []; drawRawTable(); });
+  }
+
   function drawRawTable() {
+    renderFilterChips();
+
+    var hideFilters = rawState.filters.filter(function (f) { return f.mode === "filter"; });
+    var highlightFilters = rawState.filters.filter(function (f) { return f.mode === "highlight"; });
+
     var rows = employees.filter(function (e) {
       var s = rawState.search;
       var matchesSearch = !s || (e.name + " " + e.code + " " + e.currentProcess + " " + e.designation).toLowerCase().indexOf(s) !== -1;
       var matchesProcess = !rawState.process || e.currentProcess === rawState.process;
-      return matchesSearch && matchesProcess;
+      var matchesHideFilters = hideFilters.every(function (f) { return cmp(FIELD_DEFS[f.field].get(e), f.op, f.value); });
+      return matchesSearch && matchesProcess && matchesHideFilters;
     });
 
     var sortMap = {
@@ -218,20 +294,25 @@
       totalIncentive_asc: function (a, b) { return a.totalIncentive - b.totalIncentive; },
       avgPerformance_desc: function (a, b) { return b.avgPerformance - a.avgPerformance; },
       totalLeave_desc: function (a, b) { return b.totalLeave - a.totalLeave; },
+      tenure_desc: function (a, b) { return b.monthsOnRoll - a.monthsOnRoll; },
       name_asc: function (a, b) { return a.name.localeCompare(b.name); }
     };
     rows = rows.slice().sort(sortMap[rawState.sort]);
 
-    document.getElementById("rawCount").textContent = rows.length + " of " + employees.length + " rows";
+    var hiddenCount = employees.length - rows.length;
+    document.getElementById("rawCount").textContent = rows.length + " of " + employees.length + " rows shown" + (hiddenCount ? " (" + hiddenCount + " filtered out)" : "");
+
     document.getElementById("rawTbody").innerHTML = rows.map(function (e) {
       var perfClass = e.avgPerformance >= 0.5 ? "pos" : (e.avgPerformance < 0.25 ? "risk" : "warn");
-      return "<tr data-code=\"" + e.code + "\">" +
+      var isHighlighted = highlightFilters.length > 0 && highlightFilters.some(function (f) { return cmp(FIELD_DEFS[f.field].get(e), f.op, f.value); });
+      return "<tr data-code=\"" + e.code + "\"" + (isHighlighted ? ' class="row-highlight"' : "") + ">" +
         "<td class=\"mono\">" + e.code + "</td>" +
         "<td class=\"name\">" + e.name + "</td>" +
         "<td>" + e.designation + "</td>" +
         "<td><span class=\"proc\">" + e.currentProcess + "</span></td>" +
         "<td>" + fmt.date(e.doj) + "</td>" +
         "<td class=\"num\">" + e.daysOnRoll + "</td>" +
+        "<td class=\"num\">" + Math.round(tenurePctOf(e)) + "%</td>" +
         "<td class=\"num\" style=\"color:var(--gold)\">" + fmt.inr(e.totalIncentive) + "</td>" +
         "<td class=\"num " + perfClass + "\">" + fmt.pct(e.avgPerformance) + "</td>" +
         "<td class=\"num\" style=\"color:var(--coral)\">" + fmt.num(e.totalLeave) + "</td>" +
@@ -260,6 +341,7 @@
   function openModal(code) {
     var e = employees.find(function (x) { return x.code === code; });
     if (!e) return;
+    var tenurePct = maxTenureMonths ? Math.round((e.monthsOnRoll / maxTenureMonths) * 100) : 0;
     document.getElementById("modalName").textContent = e.name;
     document.getElementById("modalSub").textContent = e.code + " · " + e.designation + " · " + e.currentProcess + " · joined " + fmt.date(e.doj);
     document.getElementById("modalKpis").innerHTML = [
@@ -267,9 +349,15 @@
       ["Avg Performance", fmt.pct(e.avgPerformance)],
       ["Total Leave", fmt.num(e.totalLeave) + " days"],
       ["Days on Roll", e.daysOnRoll],
-      ["Quality Feedback", fmt.num(e.qualityFeedback)],
+      ["Tenure", fmt.num(e.monthsOnRoll) + " mo · " + tenurePct + "%"],
       ["PIP Months", e.pipMonthsCount]
     ].map(function (kv) { return '<div class="d"><div class="k">' + kv[0] + '</div><div class="v">' + kv[1] + '</div></div>'; }).join("");
+
+    document.getElementById("modalFeedback").innerHTML =
+      '<div class="feedback-chip yellow"><div class="k">Quality Feedback</div><div class="v">' + fmt.num(e.qualityFeedback) + '</div></div>' +
+      '<div class="feedback-chip green"><div class="k">Positive</div><div class="v">' + fmt.num(e.feedbackPositive) + '</div></div>' +
+      '<div class="feedback-chip red"><div class="k">Negative</div><div class="v">' + fmt.num(e.feedbackNegative) + '</div></div>';
+
     document.getElementById("modalMonthly").innerHTML = MONTHS.map(function (m) {
       var md = e.months[m];
       return "<tr><td>" + m + "</td><td style=\"color:var(--gold)\">" + fmt.inr(md.incentive) + "</td><td>" + fmt.pct(md.performance) + "</td><td style=\"color:var(--coral)\">" + fmt.num(md.leave) + "</td><td>" + (e.pip[m] ? '<span class="risk">flagged</span>' : "—") + "</td></tr>";
@@ -296,13 +384,13 @@
         scales: {
           x: baseOptions().scales.x,
           y: Object.assign({}, baseOptions().scales.y, { position: "left" }),
-          y1: { position: "right", grid: { display: false }, ticks: { color: "#8890A4", font: { family: "IBM Plex Mono", size: 10.5 } } }
+          y1: { position: "right", grid: { display: false }, ticks: { color: "#5C7994", font: { family: "IBM Plex Mono", size: 10.5 } } }
         }
       })
     });
 
     var perfYScale = Object.assign({}, baseOptions().scales.y);
-    perfYScale.ticks = { callback: function (v) { return (v * 100) + "%"; }, color: "#8890A4", font: { family: "IBM Plex Mono", size: 10.5 } };
+    perfYScale.ticks = { callback: function (v) { return (v * 100) + "%"; }, color: "#5C7994", font: { family: "IBM Plex Mono", size: 10.5 } };
     mkChart("chartMoPerf", {
       type: "line",
       data: {
@@ -347,7 +435,7 @@
         scales: {
           x: baseOptions().scales.x,
           y: Object.assign({}, baseOptions().scales.y, { position: "left" }),
-          y1: { position: "right", grid: { display: false }, ticks: { color: "#8890A4", font: { family: "IBM Plex Mono", size: 10.5 } } }
+          y1: { position: "right", grid: { display: false }, ticks: { color: "#5C7994", font: { family: "IBM Plex Mono", size: 10.5 } } }
         }
       })
     });
@@ -372,8 +460,8 @@
           }
         },
         scales: {
-          x: Object.assign({}, baseOptions().scales.x, { title: { display: true, text: "Avg performance (%)", color: "#8890A4", font: { family: "Inter", size: 11 } } }),
-          y: Object.assign({}, baseOptions().scales.y, { title: { display: true, text: "Total incentive (₹)", color: "#8890A4", font: { family: "Inter", size: 11 } } })
+          x: Object.assign({}, baseOptions().scales.x, { title: { display: true, text: "Avg performance (%)", color: "#5C7994", font: { family: "Inter", size: 11 } } }),
+          y: Object.assign({}, baseOptions().scales.y, { title: { display: true, text: "Total incentive (₹)", color: "#5C7994", font: { family: "Inter", size: 11 } } })
         }
       })
     });
