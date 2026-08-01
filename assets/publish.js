@@ -185,35 +185,19 @@
     }
 
     publishBtn.disabled = true;
-    showStatus(statusEl, "info", "Checking repo <span class=\"progress-dots\"><span></span><span></span><span></span></span>");
+    showStatus(statusEl, "info", "Publishing to " + owner + "/" + repo + " <span class=\"progress-dots\"><span></span><span></span><span></span></span>");
 
-    var apiBase = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + path;
-    var authHeaders = { "Authorization": "token " + token, "Accept": "application/vnd.github+json" };
-
-    fetch(apiBase + "?ref=" + encodeURIComponent(branch), { headers: authHeaders })
-      .then(function (r) { return r.status === 200 ? r.json() : null; })
-      .then(function (existing) {
-        var content = JSON.stringify(parsedData, null, 2);
-        var body = {
-          message: "Publish updated employee sheet (" + parsedData.employees.length + " rows) — " + parsedData.meta.generatedAt,
-          content: b64EncodeUnicode(content),
-          branch: branch
-        };
-        if (existing && existing.sha) body.sha = existing.sha;
-
-        showStatus(statusEl, "info", "Committing data.json to " + owner + "/" + repo + " <span class=\"progress-dots\"><span></span><span></span><span></span></span>");
-        return fetch(apiBase, { method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, authHeaders), body: JSON.stringify(body) });
-      })
-      .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("GitHub returned " + r.status)); });
-        return r.json();
-      })
+    WC.github.commitJSON({
+      owner: owner, repo: repo, branch: branch, path: path, token: token,
+      content: parsedData,
+      message: "Publish updated employee sheet (" + parsedData.employees.length + " rows) — " + parsedData.meta.generatedAt
+    })
       .then(function (res) {
         WC.dataStore.setOverride(parsedData); // preview instantly in this browser while Pages rebuilds
         var commitUrl = res.commit && res.commit.html_url;
         showStatus(statusEl, "ok",
           "Published! Committed to <b>" + owner + "/" + repo + "@" + branch + "</b>." +
-          (commitUrl ? " <a href=\"" + commitUrl + "\" target=\"_blank\" rel=\"noopener\" style=\"color:#B9EEE0;text-decoration:underline;\">View commit ↗</a>" : "") +
+          (commitUrl ? " <a href=\"" + commitUrl + "\" target=\"_blank\" rel=\"noopener\" style=\"color:#0F7A54;text-decoration:underline;\">View commit ↗</a>" : "") +
           " GitHub Pages usually takes 30–60 seconds to rebuild — this browser already shows the new numbers. Reload the dashboard tabs to see them."
         );
         document.getElementById("ghToken").value = ""; // never leave the token sitting in the field
@@ -225,8 +209,4 @@
         publishBtn.disabled = false;
       });
   });
-
-  function b64EncodeUnicode(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
 })();

@@ -56,9 +56,12 @@
      Pages finishes rebuilding.
   ------------------------------------------------------------------------- */
   var OVERRIDE_KEY = "wcledger_data_override";
+  var FEEDBACK_OVERRIDE_KEY = "wcledger_feedback_override";
+  var PENDING_FEEDBACK_KEY = "wcledger_pending_feedback";
 
   var dataStore = {
     _cache: null,
+    _feedbackCache: null,
     load: function () {
       if (dataStore._cache) return Promise.resolve(dataStore._cache);
       var override = null;
@@ -90,8 +93,99 @@
     },
     clearOverride: function () {
       localStorage.removeItem(OVERRIDE_KEY);
+    },
+
+    /** Published, admin-reviewed feedback log (data/feedback.json). Same
+     *  override pattern as the main sheet, so a just-published log previews
+     *  instantly in the publishing admin's own browser. */
+    loadFeedback: function () {
+      if (dataStore._feedbackCache) return Promise.resolve(dataStore._feedbackCache);
+      var override = null;
+      try {
+        var raw = localStorage.getItem(FEEDBACK_OVERRIDE_KEY);
+        if (raw) override = JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+
+      return fetch("data/feedback.json", { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (published) {
+          if (override && override.updatedAt && published && String(override.updatedAt) > String(published.updatedAt || "")) {
+            dataStore._feedbackCache = override;
+          } else {
+            dataStore._feedbackCache = published;
+          }
+          return dataStore._feedbackCache;
+        })
+        .catch(function () {
+          var fallback = override || { feedbackLog: [], updatedAt: null };
+          dataStore._feedbackCache = fallback;
+          return fallback;
+        });
+    },
+    setFeedbackOverride: function (json) {
+      try { localStorage.setItem(FEEDBACK_OVERRIDE_KEY, JSON.stringify(json)); } catch (e) { /* ignore */ }
+      dataStore._feedbackCache = json;
     }
   };
+
+  /* ---------------- PENDING FEEDBACK CACHE ---------------------------------
+     Feedback anyone adds from the Quality Feedback tab, before an admin
+     publishes it. Lives only in this browser's localStorage — it is NOT
+     synced to other devices or users. See the Quality Feedback tab copy
+     for the honest explanation of that limitation.
+  ------------------------------------------------------------------------- */
+  var feedbackCache = {
+    list: function () {
+      try { return JSON.parse(localStorage.getItem(PENDING_FEEDBACK_KEY) || "[]"); }
+      catch (e) { return []; }
+    },
+    add: function (entry) {
+      var list = feedbackCache.list();
+      entry = Object.assign({
+        id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
+        at: new Date().toISOString()
+      }, entry);
+      list.push(entry);
+      try { localStorage.setItem(PENDING_FEEDBACK_KEY, JSON.stringify(list)); } catch (e) { /* storage full — ignore */ }
+      return entry;
+    },
+    remove: function (id) {
+      var list = feedbackCache.list().filter(function (x) { return x.id !== id; });
+      localStorage.setItem(PENDING_FEEDBACK_KEY, JSON.stringify(list));
+    },
+    clear: function () {
+      localStorage.removeItem(PENDING_FEEDBACK_KEY);
+    }
+  };
+
+  /* ---------------- GITHUB CONTENTS API HELPER ------------------------------
+     Shared by the "Publish Sheet" and "Publish Feedback" flows. Commits a
+     JSON object to a given repo/path using a token kept only in memory.
+  ------------------------------------------------------------------------- */
+  var github = {
+    commitJSON: function (opts) {
+      // opts: { owner, repo, branch, path, token, content(object), message }
+      var apiBase = "https://api.github.com/repos/" + opts.owner + "/" + opts.repo + "/contents/" + opts.path;
+      var authHeaders = { "Authorization": "token " + opts.token, "Accept": "application/vnd.github+json" };
+
+      return fetch(apiBase + "?ref=" + encodeURIComponent(opts.branch), { headers: authHeaders })
+        .then(function (r) { return r.status === 200 ? r.json() : null; })
+        .then(function (existing) {
+          var body = {
+            message: opts.message,
+            content: b64EncodeUnicode(JSON.stringify(opts.content, null, 2)),
+            branch: opts.branch
+          };
+          if (existing && existing.sha) body.sha = existing.sha;
+          return fetch(apiBase, { method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, authHeaders), body: JSON.stringify(body) });
+        })
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("GitHub returned " + r.status)); });
+          return r.json();
+        });
+    }
+  };
+  function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
 
   /* ---------------- FORMAT ------------------------------------------------ */
   var fmt = {
@@ -145,5 +239,5 @@
     }
   };
 
-  global.WCLedger = { auth: auth, dataStore: dataStore, fmt: fmt, helpers: helpers };
+  global.WCLedger = { auth: auth, dataStore: dataStore, feedbackCache: feedbackCache, github: github, fmt: fmt, helpers: helpers };
 })(window);

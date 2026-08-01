@@ -19,6 +19,7 @@
     rawdata: ["Raw Data", "The master sheet, row for row."],
     monthly: ["Monthly Report", "How the whole team trended, month by month."],
     insights: ["Insights", "Four views built to represent every executive at a glance."],
+    quality: ["Quality Feedback", "Sheet-level feedback stats, plus a live log anyone can add to."],
     publish: ["Publish Sheet", "Upload a fresh sheet and push it live."]
   };
 

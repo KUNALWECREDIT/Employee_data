@@ -19,6 +19,7 @@ GitHub Personal Access Token); a **Viewer** gets read-only dashboards.
 
 ## Recent updates
 
+- **New tab: Quality Feedback.** Top half shows KPIs/charts from the sheet's existing feedback columns. Bottom half is a live feedback log anyone signed in can add to.
 - **Theme:** switched to a light sky-blue & white palette with raised "3D" ticket/card surfaces (soft shadows, embossed edges). Data-accent colors (gold=incentive, teal=performance, coral=leave/PIP) stay the same everywhere for consistency.
 - **Chart sizing fixed:** every chart canvas now sits in a fixed-height `.chart-box` wrapper — this was the cause of charts growing to an enormous height on Overview/Monthly/Insights.
 - **Raw Data — Tenure % column:** shows each executive's tenure as a percentage of the longest-tenured person in the dataset (based on total months on roll).
@@ -27,6 +28,32 @@ GitHub Personal Access Token); a **Viewer** gets read-only dashboards.
   - **Highlight** — keeps every row visible and highlights the matches in amber
   Multiple conditions can be active at once (shown as removable chips); filter-mode conditions combine with AND, highlight-mode conditions combine with OR.
 - **Employee modal — feedback breakdown:** now shows Quality Feedback (yellow), Positive (green), and Negative (red) as separate counts, plus tenure.
+
+### How the live feedback log actually syncs (read this before relying on it)
+
+Anyone signed in — viewer or admin — can add a feedback note on an executive
+from the **Quality Feedback** tab. It appears instantly in a "Pending"
+list, no publish needed. But that instant part only happens **inside the
+same browser**: it's stored in that browser's `localStorage`, which never
+leaves the device. A viewer's phone and an admin's laptop are two separate
+caches with nothing connecting them automatically.
+
+To make feedback actually shared, an **admin publishes the pending queue**
+(same GitHub-token flow as publishing the sheet) — that commits
+`data/feedback.json` to the repo, and once GitHub Pages rebuilds, everyone
+sees it. So the realistic flow is:
+
+1. Viewer adds feedback → sees it immediately, on their own device, marked "pending."
+2. Viewer tells the admin (or the admin opens the same device / a shared kiosk browser) → admin reviews the pending queue → clicks **Publish pending → GitHub**.
+3. It's now in `data/feedback.json` for everyone, permanently.
+
+**If you want true real-time sync across everyone's devices with zero manual
+publish step**, that requires an actual backend — this static site can't do
+it with browser storage alone. A lightweight option would be a free-tier
+Firebase Realtime Database or Supabase table wired in as the write target
+instead of localStorage; ask if you'd like that built in (it does mean a
+public write endpoint sits in the client code, so it trades a bit of
+security for the convenience of no manual publish step).
 
 ## 1. What's in each dashboard
 

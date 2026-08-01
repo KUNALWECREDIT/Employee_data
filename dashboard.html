@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WE CREDIT Ledger — Dashboard</title>
+<title>WorkCollar Ledger — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -13,7 +13,7 @@
 
 <div class="app-shell">
   <nav class="sidebar">
-    <div class="brand-mark"><span class="stamp">WC</span> WE CREDIT</div>
+    <div class="brand-mark"><span class="stamp">WC</span> WorkCollar</div>
     <div class="role-pill" id="rolePill">Signed in as <b id="roleLabel">—</b></div>
 
     <div class="nav-group">
@@ -33,6 +33,10 @@
       <a class="navlink" data-tab="insights">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9z"/></svg>
         Insights <span class="tick"></span>
+      </a>
+      <a class="navlink" data-tab="quality">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12l3 3 5-6"/><circle cx="12" cy="12" r="9"/></svg>
+        Quality Feedback <span class="tick"></span>
       </a>
     </div>
 
@@ -217,6 +221,92 @@
         </div>
       </section>
 
+      <!-- ============ QUALITY FEEDBACK ============ -->
+      <section class="tab-panel" data-panel="quality" style="display:none;">
+        <div class="kpi-row" id="qfKpis"></div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Top 10 by positive feedback</h3><p>From the master sheet's Quality Feedback columns.</p></div>
+            </div>
+            <div class="chart-box" style="height:280px;"><canvas id="chartQfTop"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Positive vs. negative split</h3><p>Company-wide feedback sentiment on record.</p></div>
+            </div>
+            <div class="chart-box" style="height:280px;"><canvas id="chartQfSplit"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Log new feedback</h3><p>Anyone signed in can add a quick note on an executive — it appears below instantly in this browser. An admin then publishes it to make it official and visible to everyone.</p></div>
+          </div>
+          <div class="field-inline">
+            <div class="field">
+              <label>Executive</label>
+              <input id="fbEmployee" list="fbEmployeeList" placeholder="Type a name or code…" autocomplete="off">
+              <datalist id="fbEmployeeList"></datalist>
+            </div>
+            <div class="field">
+              <label>Feedback type</label>
+              <select class="select-mini" id="fbType" style="width:100%;">
+                <option value="positive">Positive</option>
+                <option value="negative">Negative</option>
+                <option value="note">Neutral note</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Comment</label>
+            <input id="fbComment" placeholder="What happened? Keep it specific and factual.">
+          </div>
+          <button class="btn btn-primary" id="fbSubmitBtn" style="width:auto; padding:12px 22px;">+ Add feedback</button>
+          <div class="status-box" id="fbFormStatus"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Pending — this browser only <span class="chip" id="fbPendingCount">0</span></h3><p id="fbPendingSub">Not yet published. Only visible on this device until an admin publishes it.</p></div>
+            <div id="fbAdminPublishWrap" style="display:none;">
+              <button class="btn btn-ghost btn-sm" id="fbPublishBtn">Publish pending → GitHub</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="ledger" style="min-width:0;">
+              <thead><tr><th>Employee</th><th>Type</th><th>Comment</th><th>By</th><th>When</th><th></th></tr></thead>
+              <tbody id="fbPendingTbody"><tr><td colspan="6" style="color:var(--slate)">No pending feedback in this browser yet.</td></tr></tbody>
+            </table>
+          </div>
+
+          <div id="fbAdminPublishPanel" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+            <div class="field-inline">
+              <div class="field"><label>Repo owner / org</label><input id="fbGhOwner" placeholder="your-github-username"></div>
+              <div class="field"><label>Repository name</label><input id="fbGhRepo" placeholder="workcollar-ledger"></div>
+              <div class="field"><label>Branch</label><input id="fbGhBranch" value="main"></div>
+              <div class="field"><label>File path</label><input id="fbGhPath" value="data/feedback.json"></div>
+            </div>
+            <div class="field"><label>GitHub Personal Access Token</label><input id="fbGhToken" type="password" placeholder="github_pat_…"></div>
+            <div class="status-box" id="fbPublishStatus"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Published feedback log</h3><p>Committed to <span class="mono">data/feedback.json</span> — visible to every viewer and admin.</p></div>
+            <span class="count-badge" id="fbLogCount">— entries</span>
+          </div>
+          <div class="table-wrap">
+            <table class="ledger" style="min-width:0;">
+              <thead><tr><th>Employee</th><th>Type</th><th>Comment</th><th>By</th><th>When</th></tr></thead>
+              <tbody id="fbLogTbody"><tr><td colspan="5" style="color:var(--slate)">Nothing published yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- ============ PUBLISH (admin only) ============ -->
       <section class="tab-panel" data-panel="publish" style="display:none;">
         <div class="warn-banner">
@@ -271,7 +361,7 @@
       </section>
 
     </div>
-    <footer class="foot-note">WE CREDIT Ledger · static dashboard for GitHub Pages · data refreshes when the admin publishes a new sheet</footer>
+    <footer class="foot-note">WorkCollar Ledger · static dashboard for GitHub Pages · data refreshes when the admin publishes a new sheet</footer>
   </div>
 </div>
 
@@ -298,6 +388,7 @@
 
 <script src="assets/app.js"></script>
 <script src="assets/dashboard.js"></script>
+<script src="assets/feedback.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="assets/publish.js"></script>
 </body>
