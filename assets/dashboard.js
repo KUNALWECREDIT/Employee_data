@@ -200,6 +200,7 @@
     totalIncentive: { label: "Total Incentive", get: function (e) { return e.totalIncentive; }, disp: function (v) { return fmt.inr(v); } },
     avgPerformance: { label: "Avg Performance", get: function (e) { return e.avgPerformance * 100; }, disp: function (v) { return v + "%"; } },
     totalLeave: { label: "Total Leave", get: function (e) { return e.totalLeave; }, disp: function (v) { return v + " days"; } },
+    avgLeave: { label: "Avg Leave / Mo", get: function (e) { return Math.round((e.totalLeave / MONTHS.length) * 10) / 10; }, disp: function (v) { return v + " days"; } },
     daysOnRoll: { label: "Days on Roll", get: function (e) { return e.daysOnRoll; }, disp: function (v) { return v; } },
     pipMonthsCount: { label: "PIP Months", get: function (e) { return e.pipMonthsCount; }, disp: function (v) { return v; } },
     tenurePct: { label: "Tenure", get: function (e) { return maxTenureMonths ? (e.monthsOnRoll / maxTenureMonths) * 100 : 0; }, disp: function (v) { return v + "%"; } },
@@ -295,6 +296,7 @@
       totalIncentive_asc: function (a, b) { return a.totalIncentive - b.totalIncentive; },
       avgPerformance_desc: function (a, b) { return b.avgPerformance - a.avgPerformance; },
       totalLeave_desc: function (a, b) { return b.totalLeave - a.totalLeave; },
+      avgLeave_desc: function (a, b) { return (b.totalLeave / MONTHS.length) - (a.totalLeave / MONTHS.length); },
       tenure_desc: function (a, b) { return b.monthsOnRoll - a.monthsOnRoll; },
       name_asc: function (a, b) { return a.name.localeCompare(b.name); }
     };
@@ -317,6 +319,7 @@
         "<td class=\"num\" style=\"color:var(--gold)\">" + fmt.inr(e.totalIncentive) + "</td>" +
         "<td class=\"num " + perfClass + "\">" + fmt.pct(e.avgPerformance) + "</td>" +
         "<td class=\"num\" style=\"color:var(--coral)\">" + fmt.num(e.totalLeave) + "</td>" +
+        "<td class=\"num\" style=\"color:var(--coral)\">" + fmt.num(e.totalLeave / MONTHS.length) + "</td>" +
         "<td class=\"num\">" + (e.pipMonthsCount > 0 ? '<span class="risk">' + e.pipMonthsCount + "</span>" : "—") + "</td>" +
         "<td>" + sparkline(e) + "</td>" +
         "</tr>";
