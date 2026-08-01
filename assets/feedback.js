@@ -1,5 +1,10 @@
 /* ==========================================================================
-   WorkCollar Ledger — Quality Feedback tab
+   WorkCollar Ledger — TL Feedback tab (live crowd-sourced feedback log)
+   Note: the sheet-derived Quality Feedback KPIs/charts in the Quality
+   Feedback tab are rendered here too (renderSheetKpisAndCharts), since they
+   read the same employees array — but the manual add/pending/publish flow
+   below now lives on its own "TL Feedback" tab, not mixed into Quality
+   Feedback.
    Two halves:
    1) Sheet-derived KPIs/charts, from the existing feedbackPositive /
       feedbackNegative / qualityFeedback columns in data/data.json.

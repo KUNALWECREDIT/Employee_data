@@ -19,7 +19,7 @@ GitHub Personal Access Token); a **Viewer** gets read-only dashboards.
 
 ## Recent updates
 
-- **New tab: Quality Feedback.** Top half shows KPIs/charts from the sheet's existing feedback columns. Bottom half is a live feedback log anyone signed in can add to.
+- **New tabs: Quality Feedback + TL Feedback.** Quality Feedback shows KPIs/charts from the sheet's existing feedback columns only. TL Feedback is the separate live, crowd-sourced feedback log — team leads log notes on executives there, and admins publish them from that same tab.
 - **Theme:** switched to a light sky-blue & white palette with raised "3D" ticket/card surfaces (soft shadows, embossed edges). Data-accent colors (gold=incentive, teal=performance, coral=leave/PIP) stay the same everywhere for consistency.
 - **Chart sizing fixed:** every chart canvas now sits in a fixed-height `.chart-box` wrapper — this was the cause of charts growing to an enormous height on Overview/Monthly/Insights.
 - **Raw Data — Tenure % column:** shows each executive's tenure as a percentage of the longest-tenured person in the dataset (based on total months on roll).
@@ -32,7 +32,7 @@ GitHub Personal Access Token); a **Viewer** gets read-only dashboards.
 ### How the live feedback log actually syncs (read this before relying on it)
 
 Anyone signed in — viewer or admin — can add a feedback note on an executive
-from the **Quality Feedback** tab. It appears instantly in a "Pending"
+from the **TL Feedback** tab. It appears instantly in a "Pending"
 list, no publish needed. But that instant part only happens **inside the
 same browser**: it's stored in that browser's `localStorage`, which never
 leaves the device. A viewer's phone and an admin's laptop are two separate

@@ -38,6 +38,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12l3 3 5-6"/><circle cx="12" cy="12" r="9"/></svg>
         Quality Feedback <span class="tick"></span>
       </a>
+      <a class="navlink" data-tab="tlfeedback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v3l-4-3H8a2 2 0 0 1-2-2v-1"/><path d="M3 3h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+        TL Feedback <span class="tick"></span>
+      </a>
     </div>
 
     <div class="nav-group" id="adminNavGroup" style="display:none;">
@@ -241,10 +245,13 @@
             <div class="chart-box" style="height:280px;"><canvas id="chartQfSplit"></canvas></div>
           </div>
         </div>
+      </section>
 
+      <!-- ============ TL FEEDBACK (team-lead-logged, live cache + admin publish) ============ -->
+      <section class="tab-panel" data-panel="tlfeedback" style="display:none;">
         <div class="card">
           <div class="card-head">
-            <div><h3>Log new feedback</h3><p>Anyone signed in can add a quick note on an executive — it appears below instantly in this browser. An admin then publishes it to make it official and visible to everyone.</p></div>
+            <div><h3>Log TL feedback</h3><p>Team leads (or anyone signed in) can add a quick note on an executive — it appears below instantly in this browser. An admin then publishes it to make it official and visible to everyone.</p></div>
           </div>
           <div class="field-inline">
             <div class="field">
@@ -297,7 +304,7 @@
 
         <div class="card">
           <div class="card-head">
-            <div><h3>Published feedback log</h3><p>Committed to <span class="mono">data/feedback.json</span> — visible to every viewer and admin.</p></div>
+            <div><h3>Published TL feedback log</h3><p>Committed to <span class="mono">data/feedback.json</span> — visible to every viewer and admin.</p></div>
             <span class="count-badge" id="fbLogCount">— entries</span>
           </div>
           <div class="table-wrap">
