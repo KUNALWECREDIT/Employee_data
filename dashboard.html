@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WE CREDIT — Dashboard</title>
+<title>WorkCollar Ledger — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -13,7 +13,7 @@
 
 <div class="app-shell">
   <nav class="sidebar">
-    <div class="brand-mark"><span class="stamp">WC</span> WE CREDIT</div>
+    <div class="brand-mark"><span class="stamp">WC</span> WorkCollar</div>
     <div class="role-pill" id="rolePill">Signed in as <b id="roleLabel">—</b></div>
 
     <div class="nav-group">
@@ -229,14 +229,18 @@
 
       <!-- ============ QUALITY FEEDBACK ============ -->
       <section class="tab-panel" data-panel="quality" style="display:none;">
+        <div class="table-toolbar">
+          <select class="select-mini" id="qfProcessFilter"><option value="">All processes</option></select>
+        </div>
+
         <div class="kpi-row" id="qfKpis"></div>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-head">
-              <div><h3>Top 10 by positive feedback</h3><p>From the master sheet's Quality Feedback columns.</p></div>
+              <div><h3>Top 10 by negative feedback</h3><p>From the master sheet's Quality Feedback columns.</p></div>
             </div>
-            <div class="chart-box" style="height:280px;"><canvas id="chartQfTop"></canvas></div>
+            <div class="chart-box" style="height:280px;"><canvas id="chartQfTopNeg"></canvas></div>
           </div>
           <div class="card">
             <div class="card-head">
@@ -370,7 +374,7 @@
       </section>
 
     </div>
-    <footer class="foot-note">WE CREDIT · static dashboard for GitHub Pages · data refreshes when the admin publishes a new sheet</footer>
+    <footer class="foot-note">WorkCollar Ledger · static dashboard for GitHub Pages · data refreshes when the admin publishes a new sheet</footer>
   </div>
 </div>
 

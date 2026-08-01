@@ -49,6 +49,8 @@
   }
 
   /* -------------------- load data, render both halves -------------------- */
+  var qfProcess = ""; // active process filter for the Quality Feedback tab
+
   WC.dataStore.load().then(function (json) {
     employees = json.employees;
     employees.forEach(function (e) {
@@ -59,13 +61,20 @@
       return '<option value="' + e.name + " — " + e.code + '">';
     }).join("");
 
+    var procSel = document.getElementById("qfProcessFilter");
+    var procs = Array.from(new Set(employees.map(function (e) { return e.currentProcess; }))).sort();
+    procSel.innerHTML = '<option value="">All processes</option>' + procs.map(function (p) { return '<option value="' + p + '">' + p + '</option>'; }).join("");
+    procSel.addEventListener("change", function () { qfProcess = procSel.value; renderSheetKpisAndCharts(); });
+
     renderSheetKpisAndCharts();
   }).catch(function () { /* dashboard.js already shows a load error if this fails */ });
 
   function renderSheetKpisAndCharts() {
-    var totalQF = employees.reduce(function (s, e) { return s + e.qualityFeedback; }, 0);
-    var totalPos = employees.reduce(function (s, e) { return s + e.feedbackPositive; }, 0);
-    var totalNeg = employees.reduce(function (s, e) { return s + e.feedbackNegative; }, 0);
+    var pool = qfProcess ? employees.filter(function (e) { return e.currentProcess === qfProcess; }) : employees;
+
+    var totalQF = pool.reduce(function (s, e) { return s + e.qualityFeedback; }, 0);
+    var totalPos = pool.reduce(function (s, e) { return s + e.feedbackPositive; }, 0);
+    var totalNeg = pool.reduce(function (s, e) { return s + e.feedbackNegative; }, 0);
     var netSentiment = (totalPos + totalNeg) ? (totalPos / (totalPos + totalNeg)) * 100 : 0;
 
     document.getElementById("qfKpis").innerHTML = [
@@ -77,11 +86,11 @@
       return '<div class="ticket" style="--accent:' + k.accent + '"><div class="ticket-notch"></div><div class="lbl">' + k.lbl + '</div><div class="val mono">' + k.val + '</div></div>';
     }).join("");
 
-    var top10 = employees.slice().sort(function (a, b) { return b.feedbackPositive - a.feedbackPositive; }).slice(0, 10);
-    mkChart("chartQfTop", {
+    var top10Neg = pool.slice().sort(function (a, b) { return b.feedbackNegative - a.feedbackNegative; }).slice(0, 10);
+    mkChart("chartQfTopNeg", {
       type: "bar",
-      data: { labels: top10.map(function (e) { return e.name; }), datasets: [{ data: top10.map(function (e) { return e.feedbackPositive; }), backgroundColor: "#1FA184", borderRadius: 5, maxBarThickness: 22 }] },
-      options: baseOptions({ indexAxis: "y" })
+      data: { labels: top10Neg.map(function (e) { return e.name; }), datasets: [{ data: top10Neg.map(function (e) { return e.feedbackNegative; }), backgroundColor: "#D6494E", borderRadius: 5, maxBarThickness: 22 }] },
+      options: baseOptions({ indexAxis: "y", plugins: { tooltip: { callbacks: { label: function (c) { return top10Neg[c.dataIndex].currentProcess + " · " + c.parsed.x + " negative"; } } } } })
     });
 
     mkChart("chartQfSplit", {
