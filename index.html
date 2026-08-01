@@ -104,7 +104,6 @@
       document.getElementById('statProc').textContent = procs.size;
     }).catch(function(){ /* offline / file:// preview — ignore */ });
 
-    // If already logged in, skip straight to dashboard
     if(WCLedger.auth.current()){ window.location.href = 'dashboard.html'; }
   })();
 </script>
