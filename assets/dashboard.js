@@ -13,6 +13,7 @@
   var employees = [];
   var meta = {};
   var maxTenureMonths = 0;
+  var publishedFeedbackLog = [];
 
   var TITLES = {
     overview: ["Overview", "Company-wide snapshot across every executive and every month."],
@@ -56,10 +57,13 @@
   if (!initialTab || !TITLES[initialTab] || (initialTab === "publish" && session.role !== "admin")) initialTab = "overview";
 
   /* -------------------- load data & render everything -------------------- */
-  WC.dataStore.load().then(function (json) {
+  Promise.all([WC.dataStore.load(), WC.dataStore.loadFeedback().catch(function () { return { feedbackLog: [] }; })]).then(function (results) {
+    var json = results[0];
+    var fb = results[1];
     meta = json.meta;
     employees = json.employees;
     maxTenureMonths = employees.reduce(function (m, e) { return Math.max(m, e.monthsOnRoll || 0); }, 0);
+    publishedFeedbackLog = fb.feedbackLog || [];
     document.getElementById("topbarMeta").textContent = TITLES[initialTab][1];
     document.getElementById("lastUpdatedChip").innerHTML =
       '<span class="dot" style="background:var(--teal)"></span> ' + meta.employeeCount + ' executives · updated ' + meta.generatedAt;
@@ -278,6 +282,37 @@
     if (clearBtn) clearBtn.addEventListener("click", function () { rawState.filters = []; drawRawTable(); });
   }
 
+  var TL_TYPE_CLASS = { positive: "pos", negative: "risk", note: "warn" };
+  var TL_TYPE_LABEL = { positive: "Positive", negative: "Negative", note: "Note" };
+
+  function feedbackForCode(code) {
+    var published = publishedFeedbackLog.filter(function (f) { return f.code === code; }).map(function (f) {
+      return Object.assign({ status: "published" }, f);
+    });
+    var pending = WC.feedbackCache.list().filter(function (f) { return f.code === code; }).map(function (f) {
+      return Object.assign({ status: "pending" }, f);
+    });
+    return published.concat(pending).sort(function (a, b) { return (b.at || "").localeCompare(a.at || ""); });
+  }
+
+  function renderFeedbackDetail(code) {
+    var entries = feedbackForCode(code);
+    if (!entries.length) return '<div style="padding:12px 6px; color:var(--slate); font-size:12.5px;">No TL feedback logged for this executive yet.</div>';
+    return '<div style="padding:6px 4px;">' + entries.map(function (f) {
+      return '<div style="display:flex; gap:10px; align-items:flex-start; padding:8px 6px; border-bottom:1px solid var(--line-soft); font-size:12.5px;">' +
+        '<span class="' + TL_TYPE_CLASS[f.type] + '" style="font-weight:700; min-width:64px;">' + TL_TYPE_LABEL[f.type] + '</span>' +
+        '<span style="flex:1; color:var(--paper);">' + escapeHtmlLocal(f.comment) + '</span>' +
+        '<span class="proc" style="min-width:120px;">' + escapeHtmlLocal(f.by || "") + '</span>' +
+        '<span class="proc" style="min-width:110px;">' + (f.at ? new Date(f.at).toLocaleDateString() : "") + '</span>' +
+        '<span class="chip" style="' + (f.status === "pending" ? "background:#FFF7E6;border-color:#F3D48A;color:#8A6410;" : "background:#EAFBF4;border-color:#9FE0C4;color:#0F7A54;") + '">' + (f.status === "pending" ? "Pending" : "Published") + '</span>' +
+        '</div>';
+    }).join("") + '</div>';
+  }
+
+  function escapeHtmlLocal(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  }
+
   function drawRawTable() {
     renderFilterChips();
 
@@ -309,6 +344,7 @@
     document.getElementById("rawTbody").innerHTML = rows.map(function (e) {
       var perfClass = e.avgPerformance >= 0.5 ? "pos" : (e.avgPerformance < 0.25 ? "risk" : "warn");
       var isHighlighted = highlightFilters.length > 0 && highlightFilters.some(function (f) { return cmp(FIELD_DEFS[f.field].get(e), f.op, f.value); });
+      var fbCount = feedbackForCode(e.code).length;
       return "<tr data-code=\"" + e.code + "\"" + (isHighlighted ? ' class="row-highlight"' : "") + ">" +
         "<td class=\"mono\">" + e.code + "</td>" +
         "<td class=\"name\">" + e.name + "</td>" +
@@ -323,10 +359,24 @@
         "<td class=\"num\" style=\"color:var(--coral)\">" + fmt.num(e.totalLeave / MONTHS.length) + "</td>" +
         "<td class=\"num\">" + (e.pipMonthsCount > 0 ? '<span class="risk">' + e.pipMonthsCount + "</span>" : "—") + "</td>" +
         "<td>" + sparkline(e) + "</td>" +
-        "</tr>";
+        "<td><button class=\"btn btn-ghost btn-sm\" data-fbtoggle=\"" + e.code + "\" type=\"button\">Show" + (fbCount ? " (" + fbCount + ")" : "") + "</button></td>" +
+        "</tr>" +
+        "<tr class=\"tl-feedback-detail\" data-detail-for=\"" + e.code + "\" style=\"display:none;\"><td colspan=\"14\" style=\"white-space:normal;\">" + renderFeedbackDetail(e.code) + "</td></tr>";
     }).join("");
 
-    document.querySelectorAll("#rawTbody tr").forEach(function (tr) {
+    document.querySelectorAll("#rawTbody button[data-fbtoggle]").forEach(function (btn) {
+      btn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        var code = btn.getAttribute("data-fbtoggle");
+        var detailRow = document.querySelector('tr[data-detail-for="' + code + '"]');
+        if (!detailRow) return;
+        var showing = detailRow.style.display !== "none";
+        detailRow.style.display = showing ? "none" : "table-row";
+        btn.textContent = btn.textContent.replace(showing ? "Hide" : "Show", showing ? "Show" : "Hide");
+      });
+    });
+
+    document.querySelectorAll("#rawTbody tr[data-code]").forEach(function (tr) {
       tr.addEventListener("click", function () { openModal(tr.getAttribute("data-code")); });
     });
   }

@@ -187,6 +187,23 @@
   };
   function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
 
+  /* ---------------- REPO CONFIG (owner / repo / branch — never the token) --
+     Shared between "Publish Sheet" and "TL Feedback → Publish" so filling
+     it in once on either tab pre-fills the other. This is the fix for the
+     most common cause of a "Not Found" publish error: retyping the repo
+     details slightly differently on two separate forms.
+  ------------------------------------------------------------------------- */
+  var REPO_CONFIG_KEY = "wcledger_repo_config";
+  var repoConfig = {
+    load: function () {
+      try { return JSON.parse(localStorage.getItem(REPO_CONFIG_KEY) || "{}"); }
+      catch (e) { return {}; }
+    },
+    save: function (cfg) {
+      try { localStorage.setItem(REPO_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) { /* ignore */ }
+    }
+  };
+
   /* ---------------- FORMAT ------------------------------------------------ */
   var fmt = {
     inr: function (n) {
@@ -239,5 +256,5 @@
     }
   };
 
-  global.WCLedger = { auth: auth, dataStore: dataStore, feedbackCache: feedbackCache, github: github, fmt: fmt, helpers: helpers };
+  global.WCLedger = { auth: auth, dataStore: dataStore, feedbackCache: feedbackCache, github: github, repoConfig: repoConfig, fmt: fmt, helpers: helpers };
 })(window);

@@ -171,6 +171,13 @@
   /* -------------------- admin: publish pending to GitHub -------------------- */
   var fbPublishBtn = document.getElementById("fbPublishBtn");
   if (fbPublishBtn) {
+    (function prefillRepoConfig() {
+      var cfg = WC.repoConfig.load();
+      if (cfg.owner) document.getElementById("fbGhOwner").value = cfg.owner;
+      if (cfg.repo) document.getElementById("fbGhRepo").value = cfg.repo;
+      if (cfg.branch) document.getElementById("fbGhBranch").value = cfg.branch;
+    })();
+
     fbPublishBtn.addEventListener("click", function () {
       var pending = WC.feedbackCache.list();
       if (!pending.length) return;
@@ -198,6 +205,7 @@
         }).then(function (res) {
           WC.dataStore.setFeedbackOverride(merged);
           WC.feedbackCache.clear();
+          WC.repoConfig.save({ owner: owner, repo: repo, branch: branch });
           var commitUrl = res.commit && res.commit.html_url;
           showBox(statusEl, "ok",
             "Published " + pending.length + " entr" + (pending.length === 1 ? "y" : "ies") + " to <b>" + owner + "/" + repo + "@" + branch + "</b>." +

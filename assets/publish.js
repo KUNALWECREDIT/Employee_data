@@ -124,6 +124,13 @@
 
   if (!dropZone) return; // viewer never has this markup
 
+  (function prefillRepoConfig() {
+    var cfg = WC.repoConfig.load();
+    if (cfg.owner) document.getElementById("ghOwner").value = cfg.owner;
+    if (cfg.repo) document.getElementById("ghRepo").value = cfg.repo;
+    if (cfg.branch) document.getElementById("ghBranch").value = cfg.branch;
+  })();
+
   ["dragover", "dragenter"].forEach(function (evt) {
     dropZone.addEventListener(evt, function (e) { e.preventDefault(); dropZone.classList.add("drag"); });
   });
@@ -194,6 +201,7 @@
     })
       .then(function (res) {
         WC.dataStore.setOverride(parsedData); // preview instantly in this browser while Pages rebuilds
+        WC.repoConfig.save({ owner: owner, repo: repo, branch: branch }); // remember what worked, so TL Feedback pre-fills the same values
         var commitUrl = res.commit && res.commit.html_url;
         showStatus(statusEl, "ok",
           "Published! Committed to <b>" + owner + "/" + repo + "@" + branch + "</b>." +
